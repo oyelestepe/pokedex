@@ -1,14 +1,6 @@
+// src/components/PokemonList.tsx
 import { useEffect, useState } from "react";
 import { typeColors } from "../utils/typeColors";
-
-interface PokemonListItem {
-  name: string;
-  url: string;
-}
-
-interface PokemonListResponse {
-  results: PokemonListItem[];
-}
 
 interface PokemonDetail {
   id: number;
@@ -31,65 +23,87 @@ interface PokemonDetail {
 
 const PokemonList = () => {
   const [pokemonList, setPokemonList] = useState<PokemonDetail[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const limit = 50;
+
+  const fetchPokemonList = async (page: number) => {
+    setLoading(true);
+    try {
+      const offset = (page - 1) * limit;
+      const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`);
+      const data = await res.json();
+
+      const detailed = await Promise.all(
+        data.results.map(async (pokemon: { url: string }) => {
+          const res = await fetch(pokemon.url);
+          return await res.json();
+        })
+      );
+
+      setPokemonList(detailed);
+    } catch (error) {
+      console.error("Error fetching Pokémon:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPokemonList = async () => {
-      try {
-        const response = await fetch("https://pokeapi.co/api/v2/pokemon?limit=50");
-        const data = await response.json();
-
-        const detailedData = await Promise.all(
-          data.results.map(async (pokemon: { name: string; url: string }) => {
-            const res = await fetch(pokemon.url);
-            return await res.json();
-          })
-        );
-
-        setPokemonList(detailedData);
-      } catch (error) {
-        console.error("Error fetching Pokémon data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPokemonList();
-  }, []);
-  
-  if (loading) return <p className="text-center mt-5 text-xl">Loading...</p>;
+    fetchPokemonList(page);
+  }, [page]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-4">
-      {pokemonList.map((pokemon) => {
-        const mainType = pokemon.types[0]?.type.name;
-        const bgColor = typeColors[mainType] || "bg-gray-200";
+    <div className="p-4">
+      {loading ? (
+        <p className="text-center text-xl">Loading...</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {pokemonList.map((pokemon) => {
+              const type = pokemon.types[0]?.type.name;
+              const bgColor = typeColors[type] || "bg-gray-200";
 
-        return (
-          <div
-            key={pokemon.id}
-            className={`${bgColor} text-white rounded-xl shadow-lg p-4 flex flex-col items-center transition-transform hover:scale-105`}
-          >
-            <img src={pokemon.sprites.front_default} alt={pokemon.name} className="w-24 h-24" />
-            <h2 className="capitalize text-xl font-bold mt-2">{pokemon.name}</h2>
-
-            {/* Type */}
-            <p className="mt-1 text-sm font-medium bg-white/20 px-2 py-1 rounded-full capitalize">
-              {mainType}
-            </p>
-
-            {/* Abilities */}
-            <div className="mt-2 text-sm text-center">
-              <p className="font-semibold">Abilities:</p>
-              {pokemon.abilities.map((a, i) => (
-                <p key={i} className="text-white/90 capitalize">
-                  {a.ability.name}
-                </p>
-              ))}
-            </div>
+              return (
+                <div
+                  key={pokemon.id}
+                  className={`${bgColor} text-white rounded-xl shadow-md p-4 text-center transition-transform hover:scale-105`}
+                >
+                  <img src={pokemon.sprites.front_default} alt={pokemon.name} className="w-24 h-24 mx-auto" />
+                  <h2 className="capitalize text-lg font-bold mt-2">{pokemon.name}</h2>
+                  <p className="bg-white/20 rounded-full inline-block px-3 py-1 mt-1 capitalize">
+                    {type}
+                  </p>
+                  <div className="mt-2">
+                    <p className="font-semibold">Abilities:</p>
+                    {pokemon.abilities.map((a, i) => (
+                      <p key={i} className="capitalize text-white/90">
+                        {a.ability.name}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        );
-      })}
+
+          <div className="flex justify-center gap-4 mt-8">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800"
+            >
+              Next
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };

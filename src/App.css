@@ -6,3 +6,8 @@
   padding: 2rem;
   text-align: center;
 }
+
+body {
+  background-color: #9bc9ee;
+  font-family: 'Arial', sans-serif;
+}

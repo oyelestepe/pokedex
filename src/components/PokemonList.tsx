@@ -56,7 +56,10 @@ const PokemonList = () => {
   return (
     <div className="p-4">
       {loading ? (
-        <p className="text-center text-xl">Loading...</p>
+        <div className="flex justify-center items-center h-64">
+          <img src="/loading.gif" alt="Loading..." className="w-32 h-32" />
+        </div>
+
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
